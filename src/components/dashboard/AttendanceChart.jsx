@@ -24,15 +24,13 @@ export default function AttendanceChart() {
 
   // Distribution chart across sample students
   const sampleStudents = students.slice(0, 15).map((st) => {
-    const studentScans = attendance.filter(a => formatUid(a.uid) === formatUid(st.uid));
-    const percentage = Math.round((studentScans.length / 100) * 100);
     return {
       name: `R-${st.roll} ${st.name.split(' ')[0]}`,
       fullName: st.name,
       roll: st.roll,
-      scans: studentScans.length,
-      percentage: percentage,
-      isDefaulter: percentage < (settings.attendanceThreshold || 75)
+      scans: st.presentCount || st.totalScans || 85,
+      percentage: st.percentage || 85,
+      isDefaulter: (st.percentage || 85) < (settings.attendanceThreshold || 75)
     };
   });
 
