@@ -4,55 +4,26 @@ import {
   Download, 
   Printer, 
   Search, 
-  Filter, 
   CheckCircle, 
-  XCircle, 
-  UserX, 
-  Mail, 
-  Building2,
-  Phone,
-  ShieldAlert
+  Users, 
+  Building2
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatUid } from '../utils/formatting';
 import { exportStudentsToCsv } from '../utils/exportCsv';
-import StatusBadge from '../components/common/StatusBadge';
 import EmptyState from '../components/common/EmptyState';
 
 export default function DefaultersPage() {
-  const { students, attendance, settings, stats, navigateTo, showToast } = useApp();
+  const { students, settings, stats, navigateTo, showToast } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [divisionFilter, setDivisionFilter] = useState('ALL');
 
   const threshold = settings.attendanceThreshold || 75;
 
-  // Compute student stats over the 100 working days
-  const studentMetrics = useMemo(() => {
-    // Total recorded days is 100
-    const totalWorkingDays = 100;
-
-    return students.map((st) => {
-      const studentScans = attendance.filter(a => formatUid(a.uid) === formatUid(st.uid));
-      const presentCount = studentScans.length;
-      const absentCount = Math.max(0, totalWorkingDays - presentCount);
-      const percentage = Math.round((presentCount / totalWorkingDays) * 100);
-      const isDefaulter = percentage < threshold;
-
-      return {
-        ...st,
-        totalWorkingDays,
-        presentCount,
-        absentCount,
-        percentage,
-        isDefaulter
-      };
-    });
-  }, [students, attendance, threshold]);
-
-  // Filter only defaulters
+  // Precomputed student metrics
   const defaulters = useMemo(() => {
-    return studentMetrics.filter(s => s.isDefaulter);
-  }, [studentMetrics]);
+    return students.filter(s => s.percentage < threshold);
+  }, [students, threshold]);
 
   // Search & Filter
   const filteredDefaulters = useMemo(() => {
@@ -176,7 +147,7 @@ export default function DefaultersPage() {
                   <th className="py-3.5 px-4">Student Name</th>
                   <th className="py-3.5 px-4">Division / Class</th>
                   <th className="py-3.5 px-4">RFID UID</th>
-                  <th className="py-3.5 px-4">Present / Total Days</th>
+                  <th className="py-3.5 px-4">Present / 100 Days</th>
                   <th className="py-3.5 px-4">Attendance %</th>
                   <th className="py-3.5 px-4">Shortage</th>
                   <th className="py-3.5 px-4 text-right">Action</th>
@@ -184,8 +155,7 @@ export default function DefaultersPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {filteredDefaulters.map((st) => {
-                  const requiredLectures = Math.ceil((threshold / 100) * st.totalWorkingDays);
-                  const lecturesNeeded = Math.max(0, requiredLectures - st.presentCount);
+                  const lecturesNeeded = Math.max(0, 75 - st.presentCount);
 
                   return (
                     <tr 
@@ -214,7 +184,7 @@ export default function DefaultersPage() {
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="font-bold text-slate-800 dark:text-slate-200">{st.presentCount}</span>
-                        <span className="text-slate-400"> / {st.totalWorkingDays} days</span>
+                        <span className="text-slate-400"> / 100 days</span>
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2">
