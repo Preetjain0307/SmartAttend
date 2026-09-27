@@ -15,17 +15,58 @@ export function formatUid(uid) {
 }
 
 /**
+ * Decodes the millisecond timestamp embedded in a Firebase Push ID (e.g. "-Nxyz123...")
+ */
+export function decodeFirebasePushIdTime(id) {
+  if (!id || typeof id !== 'string' || id.length < 8) return null;
+  const PUSH_CHARS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+  let timestamp = 0;
+  for (let i = 0; i < 8; i++) {
+    const c = id.charAt(i);
+    const charIndex = PUSH_CHARS.indexOf(c);
+    if (charIndex === -1) return null;
+    timestamp = timestamp * 64 + charIndex;
+  }
+  // Sanity check: valid timestamp between Jan 1 2020 and Jan 1 2035
+  if (timestamp > 1577836800000 && timestamp < 2051222400000) {
+    return timestamp;
+  }
+  return null;
+}
+
+/**
  * Safely extracts human-readable date & time strings from an attendance record.
- * Important: If no timestamp exists in the record (like legacy ESP8266 records),
- * it returns { date: 'Not available', time: 'Not available', hasTimestamp: false }.
+ * Supports explicit timestamps, field aliases (scanTime, scannedAt, etc.),
+ * explicit date/time strings, and automatic Firebase Push ID decoding.
  */
 export function extractRecordDateTime(record) {
   if (!record) {
     return { date: 'Not available', time: 'Not available', hasTimestamp: false, raw: null };
   }
 
-  // Check possible timestamp fields
-  const rawTs = record.timestamp || record.time_stamp || record.createdAt || record.date_time || record.dateTime;
+  // Check possible timestamp fields across different ESP8266 & server implementations
+  let rawTs = record.timestamp || 
+              record.time_stamp || 
+              record.createdAt || 
+              record.created_at ||
+              record.date_time || 
+              record.dateTime ||
+              record.scanTime ||
+              record.scan_time ||
+              record.scannedAt ||
+              record.scanned_at ||
+              record.time_of_scan ||
+              record.timeOfScan ||
+              record.scan_timestamp ||
+              record.ts;
+
+  // Fallback: decode timestamp from Firebase push key (e.g. record.id = "-O...")
+  if (!rawTs && record.id) {
+    const pushTime = decodeFirebasePushIdTime(record.id);
+    if (pushTime) {
+      rawTs = pushTime;
+    }
+  }
   
   if (rawTs) {
     try {
@@ -56,7 +97,7 @@ export function extractRecordDateTime(record) {
     };
   }
 
-  // Legacy records without timestamp
+  // Legacy records without any timestamp
   return {
     date: 'Not available',
     time: 'Not available',

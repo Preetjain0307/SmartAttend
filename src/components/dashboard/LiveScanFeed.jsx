@@ -64,8 +64,10 @@ export default function LiveScanFeed() {
                 <Zap className="w-3 h-3 text-violet-500" />
                 <span>Today's Taps: <strong className="font-mono">{stats.todayTotalTaps}</strong></span>
               </span>
-              <span className="text-xs text-slate-400 font-mono">
-                {dt.hasTimestamp ? dt.time : 'Instant Log'}
+              <span className="text-xs text-slate-600 dark:text-slate-300 font-mono font-medium flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700/60">
+                <Clock className="w-3.5 h-3.5 text-brand-500" />
+                <span>{dt.time}</span>
+                <span className="text-[10px] text-slate-400 font-normal">({dt.date})</span>
               </span>
             </div>
 

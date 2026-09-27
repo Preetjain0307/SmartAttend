@@ -1,9 +1,11 @@
-import { ref, onValue, get, push, set, serverTimestamp } from 'firebase/database';
+import { ref, onValue, get, push, set, update, serverTimestamp } from 'firebase/database';
 import { database, initError } from './config';
+import { decodeFirebasePushIdTime } from '../utils/formatting';
 
 /**
  * Service for Attendance Firebase Realtime Database operations.
  * Works seamlessly with existing ESP8266 schema under `/attendance`.
+ * Pure Software Solution: Automatically assigns scan timestamps to all incoming hardware scans.
  */
 
 const ATTENDANCE_PATH = 'attendance';
@@ -36,9 +38,28 @@ export function subscribeToAttendance(onData, onError) {
       Object.keys(val).forEach((key) => {
         const item = val[key];
         if (item && typeof item === 'object') {
+          // Pure software timestamp deduction:
+          // If ESP8266 didn't supply a timestamp, decode it from the Firebase push ID or default to now
+          const derivedTs = item.timestamp || 
+                            item.time_stamp || 
+                            item.createdAt || 
+                            item.created_at ||
+                            decodeFirebasePushIdTime(key) || 
+                            Date.now();
+
+          // If the database record is missing a timestamp field, write it back quietly so it's permanently stored
+          if (!item.timestamp && database) {
+            try {
+              update(ref(database, `${ATTENDANCE_PATH}/${key}`), { timestamp: derivedTs }).catch(() => {});
+            } catch (e) {
+              // ignore sync errors
+            }
+          }
+
           records.push({
             id: key,
-            ...item
+            ...item,
+            timestamp: derivedTs
           });
         }
       });
@@ -74,9 +95,16 @@ export async function getAttendance() {
   Object.keys(val).forEach((key) => {
     const item = val[key];
     if (item && typeof item === 'object') {
+      const derivedTs = item.timestamp || 
+                        item.time_stamp || 
+                        item.createdAt || 
+                        item.created_at ||
+                        decodeFirebasePushIdTime(key) || 
+                        Date.now();
       records.push({
         id: key,
-        ...item
+        ...item,
+        timestamp: derivedTs
       });
     }
   });
