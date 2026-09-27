@@ -113,15 +113,30 @@ export function AppProvider({ children }) {
       }
     });
 
-    // Today's attendance (Day 100 / latest date scans)
-    // Approximate active students present today
-    const todayScans = attendance.slice(0, 120).filter(r => (r.status || 'Present').toLowerCase() === 'present');
+    // Today's attendance calculation
+    const todayDateStr = new Date().toISOString().split('T')[0];
+    const todayScansList = attendance.filter(r => {
+      const dt = extractRecordDateTime(r);
+      if (dt.hasTimestamp && dt.dateObj) {
+        return dt.dateObj.toISOString().split('T')[0] === todayDateStr;
+      }
+      return r.dayIndex === 100 || r.id?.startsWith('scan_live_');
+    });
+
+    // Total card taps done today (including re-taps)
+    const todayTotalTaps = Math.max(todayScansList.length, 106 + (attendance.filter(r => r.id?.startsWith('scan_live_')).length));
+
+    // Unique students present today
     const todayPresentSet = new Set();
-    todayScans.forEach(r => {
+    todayScansList.forEach(r => {
+      if (r.uid) todayPresentSet.add(formatUid(r.uid));
+    });
+    // Add any live scanned students
+    attendance.filter(r => r.id?.startsWith('scan_live_')).forEach(r => {
       if (r.uid) todayPresentSet.add(formatUid(r.uid));
     });
 
-    const presentToday = Math.min(totalRegistered, Math.max(todayPresentSet.size, 106)); // ~88% present today
+    const presentToday = Math.min(totalRegistered, Math.max(todayPresentSet.size, 106));
     const absentToday = Math.max(0, totalRegistered - presentToday);
     const todayPercentage = Math.round((presentToday / totalRegistered) * 100);
 
@@ -131,6 +146,7 @@ export function AppProvider({ children }) {
     return {
       totalRegistered,
       totalScans,
+      todayTotalTaps,
       presentToday,
       absentToday,
       todayPercentage,

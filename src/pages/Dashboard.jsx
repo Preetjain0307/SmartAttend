@@ -74,19 +74,21 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Top 4 Key Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top Key Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
-          title="Total Students"
-          value={stats.totalRegistered}
-          subtitle="Enrolled in TYIT & CS"
-          icon={Users}
-          color="blue"
+          title="Today's Card Scans"
+          value={stats.todayTotalTaps}
+          subtitle="Total RFID card taps today"
+          icon={Radio}
+          color="violet"
+          trend="Live Counter"
+          highlight={true}
         />
         <StatCard
           title="Present Today"
           value={stats.presentToday}
-          subtitle="Active attendance scans"
+          subtitle="Unique students present"
           icon={UserCheck}
           color="emerald"
           trend={`${stats.todayPercentage}% today`}
@@ -99,12 +101,18 @@ export default function Dashboard() {
           color="rose"
         />
         <StatCard
+          title="Total Students"
+          value={stats.totalRegistered}
+          subtitle="Enrolled in TYIT & CS"
+          icon={Users}
+          color="blue"
+        />
+        <StatCard
           title="Eligible Students"
           value={stats.eligibleCount}
           subtitle={`Satisfying >= ${settings.attendanceThreshold || 75}%`}
           icon={Award}
           color="emerald"
-          highlight={true}
         />
       </div>
 

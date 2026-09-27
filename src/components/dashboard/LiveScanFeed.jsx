@@ -56,9 +56,13 @@ export default function LiveScanFeed() {
           </div>
 
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950 px-2 py-0.5 rounded-md">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950 px-2.5 py-0.5 rounded-md">
                 Latest RFID Scan
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-950/80 px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                <Zap className="w-3 h-3 text-violet-500" />
+                <span>Today's Taps: <strong className="font-mono">{stats.todayTotalTaps}</strong></span>
               </span>
               <span className="text-xs text-slate-400 font-mono">
                 {dt.hasTimestamp ? dt.time : 'Instant Log'}
