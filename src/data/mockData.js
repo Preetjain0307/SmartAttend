@@ -29,7 +29,7 @@ const LAST_NAMES = [
 
 // Seeded random helper for consistent deterministic data
 function pseudoRandom(seed) {
-  const x = Math.sin(seed++) * 10000;
+  const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
 }
 
@@ -65,7 +65,6 @@ export function generate120Students() {
   });
 
   // Generate Remaining 118 Students (Roll 1 to 120, skipping 17 and 27)
-  let count = 3;
   for (let r = 1; r <= 120; r++) {
     if (r === 17 || r === 27) continue;
 
@@ -81,7 +80,7 @@ export function generate120Students() {
     const uid = `${hex1} ${hex2} ${hex3} ${hex4}`;
 
     // Attendance profile distribution:
-    // ~15% Defaulters (< 75%, e.g., 40% - 70%)
+    // ~15% Defaulters (< 75%, e.g., 45% - 70%)
     // ~25% Average (75% - 82%)
     // ~60% Regular / High (83% - 98%)
     let targetRate;
@@ -111,8 +110,6 @@ export function generate120Students() {
       status: "Active",
       targetAttendanceRate: targetRate
     });
-
-    count++;
   }
 
   // Sort by Roll Number numerically
@@ -125,41 +122,29 @@ export function generate120Students() {
 export function generate100DaysAttendance(studentsList) {
   const records = [];
   const totalDays = 100;
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 140); // 140 calendar days ago to account for weekends
-
-  const workingDates = [];
-  let curDate = new Date(startDate);
-  const today = new Date();
-
-  // Find 100 working days (Mon-Fri / Sat)
-  while (workingDates.length < totalDays && curDate <= today) {
-    const dayOfWeek = curDate.getDay();
-    if (dayOfWeek !== 0) { // Exclude Sundays
-      workingDates.push(new Date(curDate));
-    }
-    curDate.setDate(curDate.getDate() + 1);
-  }
+  const nowMs = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
 
   let recIdCounter = 1000;
 
-  workingDates.forEach((dayObj, dayIdx) => {
-    const isToday = dayIdx === workingDates.length - 1;
-    const dateStr = dayObj.toISOString().split('T')[0];
+  for (let dayIdx = 0; dayIdx < totalDays; dayIdx++) {
+    // Days from 99 days ago to today (0 = 99 days ago, 99 = today)
+    const daysAgo = (totalDays - 1) - dayIdx;
+    const dayDate = new Date(nowMs - (daysAgo * dayMs));
+    const dateStr = dayDate.toISOString().split('T')[0];
 
-    studentsList.forEach((student, sIdx) => {
-      // Deterministic pseudo-random roll check
-      const seed = (dayIdx * 131) + (parseInt(student.roll, 10) * 17);
+    studentsList.forEach((student) => {
+      const rollNum = parseInt(student.roll, 10);
+      const seed = (dayIdx * 131) + (rollNum * 17);
       const rand = pseudoRandom(seed);
 
       const isPresent = rand <= student.targetAttendanceRate;
 
       if (isPresent) {
-        // Morning lecture time between 08:30 AM and 09:15 AM
         const minuteOffset = Math.floor(pseudoRandom(seed + 5) * 45);
         const secondOffset = Math.floor(pseudoRandom(seed + 9) * 59);
-        const scanDate = new Date(dayObj);
-        scanDate.setHours(8, 30 + minuteOffset, secondOffset);
+        const scanTimeMs = dayDate.getTime() + (minuteOffset * 60 * 1000) + (secondOffset * 1000);
+        const scanDate = new Date(scanTimeMs);
 
         records.push({
           id: `scan_${recIdCounter++}`,
@@ -170,7 +155,7 @@ export function generate100DaysAttendance(studentsList) {
           division: student.division,
           status: "Present",
           device: "SmartAttend RC522 Reader (TCSC Lab 402)",
-          timestamp: scanDate.getTime(),
+          timestamp: scanTimeMs,
           date: scanDate.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }),
           time: scanDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           rawDate: dateStr,
@@ -178,8 +163,8 @@ export function generate100DaysAttendance(studentsList) {
         });
       }
     });
-  });
+  }
 
-  // Reverse so the latest scans (most recent day) are first
+  // Reverse so the newest scans (today) are at index 0
   return records.reverse();
 }
